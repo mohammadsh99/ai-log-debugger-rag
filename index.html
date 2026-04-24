@@ -1,0 +1,830 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Log Debugger</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
+          Cantarell, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+      }
+
+      .container {
+        width: 100%;
+        max-width: 900px;
+      }
+
+      .header {
+        text-align: center;
+        margin-bottom: 40px;
+        color: white;
+      }
+
+      .header h1 {
+        font-size: 2.5em;
+        margin-bottom: 10px;
+        font-weight: 700;
+        letter-spacing: -0.5px;
+      }
+
+      .header p {
+        font-size: 1.1em;
+        opacity: 0.9;
+      }
+
+      .card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        padding: 40px;
+        margin-bottom: 20px;
+      }
+
+      .input-section {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+
+      textarea {
+        width: 100%;
+        padding: 15px;
+        border: 2px solid #e0e0e0;
+        border-radius: 8px;
+        font-size: 1em;
+        font-family: inherit;
+        resize: vertical;
+        min-height: 120px;
+        transition: border-color 0.3s;
+      }
+
+      textarea:focus {
+        outline: none;
+        border-color: #667eea;
+      }
+
+      .button-group {
+        display: flex;
+        gap: 10px;
+      }
+
+      button {
+        flex: 1;
+        padding: 14px 28px;
+        font-size: 1em;
+        font-weight: 600;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.3s;
+      }
+
+      .btn-analyze {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+      }
+
+      .btn-analyze:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+      }
+
+      .btn-analyze:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .btn-clear {
+        background: #f5f5f5;
+        color: #333;
+      }
+
+      .btn-clear:hover {
+        background: #e0e0e0;
+      }
+
+      .file-upload-area {
+        border: 2px dashed #c0c0e0;
+        border-radius: 8px;
+        padding: 16px 20px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        cursor: pointer;
+        transition:
+          border-color 0.3s,
+          background 0.3s;
+        background: #fafafa;
+      }
+
+      .file-upload-area:hover {
+        border-color: #667eea;
+        background: #f0f2ff;
+      }
+
+      .file-upload-area input[type="file"] {
+        display: none;
+      }
+
+      .file-upload-label {
+        font-size: 0.95em;
+        color: #555;
+        cursor: pointer;
+        flex: 1;
+      }
+
+      .file-upload-label span {
+        color: #667eea;
+        font-weight: 600;
+      }
+
+      .btn-upload {
+        flex: 1;
+        background: linear-gradient(135deg, #43cea2 0%, #185a9d 100%);
+        color: white;
+      }
+
+      .btn-upload:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(67, 206, 162, 0.35);
+      }
+
+      .btn-upload:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .log-results-section {
+        display: none;
+        margin-top: 20px;
+      }
+
+      .log-results-section.show {
+        display: block;
+      }
+
+      .log-result-card {
+        margin-bottom: 16px;
+        padding: 20px 24px;
+        background: #f4f6ff;
+        border-left: 4px solid #43cea2;
+        border-radius: 8px;
+      }
+
+      .log-result-error {
+        font-size: 0.82em;
+        font-weight: 700;
+        color: #888;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        margin-bottom: 10px;
+        word-break: break-word;
+      }
+
+      .log-result-field {
+        margin-bottom: 10px;
+      }
+
+      .log-result-label {
+        font-size: 0.8em;
+        font-weight: 700;
+        color: #185a9d;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        margin-bottom: 4px;
+      }
+
+      .log-result-value {
+        font-size: 0.97em;
+        color: #333;
+        line-height: 1.5;
+      }
+
+      .results-section {
+        display: none;
+      }
+
+      .results-section.show {
+        display: block;
+      }
+
+      .result-card {
+        margin-bottom: 20px;
+        padding: 30px;
+        background: #f8f9fa;
+        border-left: 4px solid #667eea;
+        border-radius: 8px;
+      }
+
+      .result-field {
+        margin-bottom: 25px;
+      }
+
+      .result-field:last-child {
+        margin-bottom: 0;
+      }
+
+      .result-label {
+        font-size: 0.85em;
+        font-weight: 700;
+        color: #667eea;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 8px;
+      }
+
+      .result-value {
+        font-size: 1.1em;
+        color: #333;
+        line-height: 1.6;
+      }
+
+      .matches-section {
+        margin-top: 30px;
+      }
+
+      .matches-title {
+        font-size: 1.3em;
+        font-weight: 700;
+        color: #333;
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #667eea;
+      }
+
+      .match-item {
+        background: white;
+        padding: 20px;
+        margin-bottom: 15px;
+        border-radius: 8px;
+        border-left: 3px solid #764ba2;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      }
+
+      .match-item:last-child {
+        margin-bottom: 0;
+      }
+
+      .match-error {
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 8px;
+      }
+
+      .match-solution {
+        color: #555;
+        margin-bottom: 10px;
+        font-size: 0.95em;
+      }
+
+      .match-distance {
+        font-size: 0.85em;
+        color: #999;
+        font-weight: 500;
+      }
+
+      .distance-badge {
+        display: inline-block;
+        background: #667eea;
+        color: white;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.8em;
+        font-weight: 600;
+      }
+
+      .error-message {
+        background: #fee;
+        color: #c33;
+        padding: 15px;
+        border-radius: 8px;
+        border-left: 4px solid #c33;
+        margin-bottom: 20px;
+        display: none;
+      }
+
+      .error-message.show {
+        display: block;
+      }
+
+      .loading {
+        text-align: center;
+        color: #667eea;
+        font-size: 1.1em;
+        margin: 20px 0;
+        display: none;
+      }
+
+      .loading.show {
+        display: block;
+      }
+
+      .spinner {
+        display: inline-block;
+        width: 20px;
+        height: 20px;
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid #667eea;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-right: 10px;
+        vertical-align: middle;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .no-matches {
+        text-align: center;
+        color: #999;
+        padding: 20px;
+        font-style: italic;
+      }
+
+      @media (max-width: 600px) {
+        .card {
+          padding: 25px;
+        }
+
+        .header h1 {
+          font-size: 1.8em;
+        }
+
+        .button-group {
+          flex-direction: column;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>AI Log Debugger</h1>
+        <p>Analyze errors and get instant solutions</p>
+      </div>
+
+      <div class="card">
+        <div class="input-section">
+          <textarea
+            id="errorInput"
+            placeholder="Paste your error message here..."
+          ></textarea>
+          <div class="button-group">
+            <button class="btn-analyze" id="analyzeBtn">Analyze</button>
+            <button class="btn-clear" id="clearBtn">Clear</button>
+          </div>
+
+          <div class="file-upload-area" id="fileUploadArea">
+            <input type="file" id="logFile" accept=".log,.txt" />
+            <label class="file-upload-label" for="logFile">
+              <span>Choose a .log file</span> or drag and drop it here
+            </label>
+            <button class="btn-upload" id="uploadBtn" disabled>
+              Analyze Log File
+            </button>
+          </div>
+
+          <div class="log-results-section" id="logResultsSection">
+            <div class="matches-title" style="margin-bottom: 16px">
+              Log File Analysis
+            </div>
+            <div id="logResultsList"></div>
+          </div>
+        </div>
+
+        <div class="error-message" id="errorMessage"></div>
+        <div class="loading" id="loading">
+          <span class="spinner"></span>Analyzing...
+        </div>
+
+        <div class="results-section" id="resultsSection">
+          <div class="result-card">
+            <div class="result-field">
+              <div class="result-label">Root Cause</div>
+              <div class="result-value" id="rootCause"></div>
+            </div>
+            <div class="result-field">
+              <div class="result-label">Recommended Fix</div>
+              <div class="result-value" id="fix"></div>
+            </div>
+            <div class="result-field">
+              <div class="result-label">Explanation</div>
+              <div class="result-value" id="explanation"></div>
+            </div>
+
+            <div class="matches-section" id="matchesContainer">
+              <div class="matches-title">Similar Past Errors</div>
+              <div id="matchesList"></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="history-section">
+          <h2>Previous Searches</h2>
+          <div id="history-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const API_URL = "http://127.0.0.1:8000/search";
+      const ANALYZE_LOGS_URL = "http://127.0.0.1:8000/analyze-logs";
+      const HISTORY_URL = "http://127.0.0.1:8000/history";
+      const errorInput = document.getElementById("errorInput");
+      const analyzeBtn = document.getElementById("analyzeBtn");
+      const clearBtn = document.getElementById("clearBtn");
+      const errorMessage = document.getElementById("errorMessage");
+      const loading = document.getElementById("loading");
+      const resultsSection = document.getElementById("resultsSection");
+      const historyList = document.getElementById("history-list");
+      let historyCache = [];
+
+      analyzeBtn.addEventListener("click", analyzeError);
+      clearBtn.addEventListener("click", clearResults);
+
+      const logFileInput = document.getElementById("logFile");
+      const uploadBtn = document.getElementById("uploadBtn");
+      const fileUploadArea = document.getElementById("fileUploadArea");
+      const logResultsSection = document.getElementById("logResultsSection");
+      const logResultsList = document.getElementById("logResultsList");
+
+      logFileInput.addEventListener("change", () => {
+        uploadBtn.disabled = !logFileInput.files.length;
+        const label = fileUploadArea.querySelector(".file-upload-label");
+        if (logFileInput.files.length) {
+          label.innerHTML = `<span>${escapeHtml(logFileInput.files[0].name)}</span> selected`;
+        } else {
+          label.innerHTML =
+            "<span>Choose a .log file</span> or drag and drop it here";
+        }
+      });
+
+      uploadBtn.addEventListener("click", analyzeLogFile);
+
+      fileUploadArea.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        fileUploadArea.style.borderColor = "#667eea";
+        fileUploadArea.style.background = "#f0f2ff";
+      });
+
+      fileUploadArea.addEventListener("dragleave", () => {
+        fileUploadArea.style.borderColor = "";
+        fileUploadArea.style.background = "";
+      });
+
+      fileUploadArea.addEventListener("drop", (e) => {
+        e.preventDefault();
+        fileUploadArea.style.borderColor = "";
+        fileUploadArea.style.background = "";
+        const file = e.dataTransfer.files[0];
+        if (file) {
+          const dt = new DataTransfer();
+          dt.items.add(file);
+          logFileInput.files = dt.files;
+          logFileInput.dispatchEvent(new Event("change"));
+        }
+      });
+      historyList.addEventListener("click", handleHistorySelection);
+      historyList.addEventListener("keydown", handleHistoryKeydown);
+      errorInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && e.ctrlKey) {
+          analyzeError();
+        }
+      });
+      loadHistory();
+
+      async function analyzeError() {
+        const error = errorInput.value.trim();
+
+        if (!error) {
+          showError("Please enter an error message.");
+          return;
+        }
+
+        clearResults();
+        hideError();
+        showLoading();
+        analyzeBtn.disabled = true;
+
+        try {
+          const response = await fetch(API_URL, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ error }),
+          });
+
+          if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+          }
+
+          const data = await response.json();
+          displayResults(data);
+          await loadHistory();
+        } catch (err) {
+          showError(`Failed to analyze error: ${err.message}`);
+        } finally {
+          hideLoading();
+          analyzeBtn.disabled = false;
+        }
+      }
+
+      async function analyzeLogFile() {
+        const file = logFileInput.files[0];
+        if (!file) {
+          showError("Please select a .log file first.");
+          return;
+        }
+
+        hideError();
+        showLoading();
+        uploadBtn.disabled = true;
+        logResultsSection.classList.remove("show");
+        logResultsList.innerHTML = "";
+
+        try {
+          const logs = await readFileAsText(file);
+
+          const response = await fetch(ANALYZE_LOGS_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ logs }),
+          });
+
+          if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+          }
+
+          const data = await response.json();
+          displayLogResults(data);
+          await loadHistory();
+        } catch (err) {
+          showError(`Failed to analyze log file: ${err.message}`);
+        } finally {
+          hideLoading();
+          uploadBtn.disabled = false;
+        }
+      }
+
+      function readFileAsText(file) {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result || ""));
+          reader.onerror = () =>
+            reject(new Error("Unable to read selected file."));
+          reader.readAsText(file);
+        });
+      }
+
+      function displayLogResults(data) {
+        if (!data.results || data.results.length === 0) {
+          logResultsList.innerHTML =
+            '<div class="no-matches">No error lines detected in the log file.</div>';
+          logResultsSection.classList.add("show");
+          return;
+        }
+
+        logResultsList.innerHTML = data.results
+          .map(
+            (item) => `
+              <div class="log-result-card">
+                <div class="log-result-error">Detected: ${escapeHtml(item.error)}</div>
+                <div class="log-result-field">
+                  <div class="log-result-label">Root Cause</div>
+                  <div class="log-result-value">${escapeHtml(item.root_cause || "N/A")}</div>
+                </div>
+                <div class="log-result-field">
+                  <div class="log-result-label">Fix</div>
+                  <div class="log-result-value">${escapeHtml(item.fix || "N/A")}</div>
+                </div>
+                <div class="log-result-field">
+                  <div class="log-result-label">Explanation</div>
+                  <div class="log-result-value">${escapeHtml(item.explanation || "N/A")}</div>
+                </div>
+              </div>
+            `,
+          )
+          .join("");
+
+        logResultsSection.classList.add("show");
+      }
+
+      function displayResults(data) {
+        document.getElementById("rootCause").textContent =
+          data.root_cause || "N/A";
+        document.getElementById("fix").textContent = data.fix || "N/A";
+        document.getElementById("explanation").textContent =
+          data.explanation || "N/A";
+
+        const matchesList = document.getElementById("matchesList");
+        if (data.matches && data.matches.length > 0) {
+          matchesList.innerHTML = data.matches
+            .map(
+              (match) => `
+                    <div class="match-item">
+                        <div class="match-error">${escapeHtml(match.error)}</div>
+                        <div class="match-solution">${escapeHtml(match.solution)}</div>
+                        <div class="match-distance">
+                            ${getConfidenceDisplay(match)}
+                        </div>
+                    </div>
+                `,
+            )
+            .join("");
+        } else {
+          matchesList.innerHTML =
+            '<div class="no-matches">No similar errors found.</div>';
+        }
+
+        resultsSection.classList.add("show");
+      }
+
+      function displayHistoryResult(item) {
+        document.getElementById("rootCause").textContent =
+          item.root_cause || "N/A";
+        document.getElementById("fix").textContent = item.fix || "N/A";
+        document.getElementById("explanation").textContent = item.explanation
+          ? `${item.explanation} (Loaded from history)`
+          : "Loaded from history";
+
+        const matchesList = document.getElementById("matchesList");
+        matchesList.innerHTML =
+          '<div class="match-item"><div class="match-solution">Loaded from history</div></div>';
+
+        resultsSection.classList.add("show");
+      }
+
+      function getConfidenceDisplay(match) {
+        const rawConfidence =
+          typeof match.confidence === "number"
+            ? match.confidence
+            : typeof match.distance === "number"
+              ? 1 - match.distance
+              : 0;
+
+        const confidence = Math.max(0, Math.min(1, rawConfidence));
+        const rounded = confidence.toFixed(2);
+
+        let color = "#dc2626";
+        let icon = "🔴";
+        if (confidence > 0.6) {
+          color = "#16a34a";
+          icon = "🟢";
+        } else if (confidence >= 0.4) {
+          color = "#f59e0b";
+          icon = "🟡";
+        }
+
+        return `Confidence: <span class="distance-badge" style="background:${color}">${rounded} ${icon}</span>`;
+      }
+
+      async function loadHistory() {
+        try {
+          const response = await fetch(HISTORY_URL);
+
+          if (!response.ok) {
+            throw new Error(`API error: ${response.status}`);
+          }
+
+          const history = await response.json();
+          historyCache = Array.isArray(history) ? history : [];
+
+          if (historyCache.length === 0) {
+            historyList.innerHTML =
+              '<div class="match-item">No previous searches.</div>';
+            return;
+          }
+
+          historyList.innerHTML = historyCache
+            .map(
+              (item, index) => `
+                <div
+                  class="match-item"
+                  data-history-index="${index}"
+                  role="button"
+                  tabindex="0"
+                  style="cursor: pointer; transition: background-color 0.2s ease;"
+                >
+                  <div class="match-error">${escapeHtml(item.user_input || "N/A")}</div>
+                  <div class="match-solution">${escapeHtml(item.root_cause || "N/A")}</div>
+                </div>
+              `,
+            )
+            .join("");
+        } catch (err) {
+          historyList.innerHTML =
+            '<div class="match-item">Unable to load history.</div>';
+        }
+      }
+
+      async function handleHistorySelection(event) {
+        const historyItem = event.target.closest("[data-history-index]");
+        if (!historyItem) {
+          return;
+        }
+
+        const index = Number(historyItem.dataset.historyIndex);
+        const item = historyCache[index];
+        if (!item) {
+          return;
+        }
+
+        errorInput.value = item.user_input || "";
+        hideError();
+        hideLoading();
+        displayHistoryResult(item);
+      }
+
+      async function handleHistoryKeydown(event) {
+        if (event.key !== "Enter" && event.key !== " ") {
+          return;
+        }
+
+        const historyItem = event.target.closest("[data-history-index]");
+        if (!historyItem) {
+          return;
+        }
+
+        event.preventDefault();
+
+        const index = Number(historyItem.dataset.historyIndex);
+        const item = historyCache[index];
+        if (!item) {
+          return;
+        }
+
+        errorInput.value = item.user_input || "";
+        hideError();
+        hideLoading();
+        displayHistoryResult(item);
+      }
+
+      historyList.addEventListener("mouseover", (event) => {
+        const historyItem = event.target.closest("[data-history-index]");
+        if (historyItem) {
+          historyItem.style.backgroundColor = "#eef2f7";
+        }
+      });
+
+      historyList.addEventListener("mouseout", (event) => {
+        const historyItem = event.target.closest("[data-history-index]");
+        if (historyItem) {
+          historyItem.style.backgroundColor = "white";
+        }
+      });
+
+      function clearResults() {
+        errorInput.value = "";
+        resultsSection.classList.remove("show");
+        hideError();
+        hideLoading();
+      }
+
+      function showError(message) {
+        errorMessage.textContent = message;
+        errorMessage.classList.add("show");
+      }
+
+      function hideError() {
+        errorMessage.classList.remove("show");
+      }
+
+      function showLoading() {
+        loading.classList.add("show");
+      }
+
+      function hideLoading() {
+        loading.classList.remove("show");
+      }
+
+      function escapeHtml(text) {
+        const div = document.createElement("div");
+        div.textContent = text;
+        return div.innerHTML;
+      }
+    </script>
+  </body>
+</html>
